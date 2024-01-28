@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from 'antd/es/layout/layout';
-import { Select, Space } from 'antd';
+import { Button, Select, Space, Modal, Drawer } from 'antd';
+import { useCrypto } from '../../context/crypto-context';
+import CoinInfoModal from '../CoinIfoModal';
+import AddAssetForm from '../AddAssetForm';
 
 const headerStyle = {
   width: '100%',
@@ -10,7 +13,7 @@ const headerStyle = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  background: 'teal',
+  // background: 'teal',
 };
 
 const options = [
@@ -40,32 +43,74 @@ const options = [
   },
 ];
 
-const handleChange = (value) => {
-  console.log(`selected ${value}`);
-};
-
 function AppHeader() {
+  const [select, setSelect] = useState(false);
+  const [modal, setModal] = useState(false);
+  const [coin, setCoin] = useState(null);
+  const [drawer, setDrawer] = useState(false);
+  const { crypto } = useCrypto();
+
+  useEffect(() => {
+    const keypress = (event) => {
+      if (event.key === '/') {
+        setSelect((prev) => !prev);
+      }
+    };
+    document.addEventListener('keypress', keypress);
+    return () => document.removeEventListener('keypress', keypress);
+  }, []);
+
+  function handleSelect(value) {
+    setCoin(crypto.find((c) => c.id === value));
+    setModal(true);
+  }
+
   return (
     <Layout.Header style={headerStyle}>
       <Select
         mode="multiple"
         style={{
-          width: '100%',
+          width: 346,
         }}
-        placeholder="select one country"
+        open={select}
+        onSelect={handleSelect}
+        onClick={() => setSelect((prev) => !prev)}
+        placeholder="press/ to open"
         defaultValue={['china']}
-        onChange={handleChange}
-        optionLabelProp="label"
-        options={options}
+        options={crypto.map((coin) => ({
+          label: coin.name,
+          value: coin.id,
+          icon: coin.icon,
+        }))}
         optionRender={(option) => (
           <Space>
-            <span role="img" aria-label={option.data.label}>
-              {option.data.emoji}
-            </span>
-            {option.data.desc}
+            <img
+              style={{ width: 20 }}
+              src={option.data.icon}
+              alt={option.data.label}
+            />{' '}
+            {option.data.label}
           </Space>
         )}
       />
+      <Button type="primary" onClick={() => setDrawer(true)}>
+        Add Drawer
+      </Button>
+
+      <Modal open={modal} onCancel={() => setModal(false)} footer={null}>
+        <CoinInfoModal coin={coin} />
+      </Modal>
+
+      <Drawer
+        width={600}
+        title="add Drawer"
+        onClose={() => setDrawer(false)}
+        open={drawer}
+        destroyOnClose
+        
+      >
+        <AddAssetForm onClose={()=> setDrawer(false)}/>
+      </Drawer>
     </Layout.Header>
   );
 }
